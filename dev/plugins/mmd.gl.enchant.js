@@ -150,7 +150,9 @@ var MMD = {};
             } else {
                 this.table[param.parent_bone_index].addChild(bone);
             }
-            if (param.name.match(/ひざ/)) {
+            
+            //if (param.name.match("ひざ")) { // This DOES NOT WORK ON SOME SYSTEMS
+            if (param.name.match(/\u3072\u3056/)) { 
                 bone.constraint = function(q) {
                     return quat4.set([ Math.sqrt(1 - q[3] * q[3]), 0, 0, q[3] ], q);
                 };
@@ -271,6 +273,12 @@ var MMD = {};
         _render: function() {
             var core = enchant.Core.instance;
             var scene = core.currentScene3D;
+            
+            if (!scene)
+            {
+                return;
+            }
+            
             var light = scene.directionalLight;
             var lvec = [ light._directionX, light._directionY, light._directionZ ];
             var uMVMatrix = mat4.identity(this.uMVMatrix);

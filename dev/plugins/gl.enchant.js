@@ -64,11 +64,13 @@ if (typeof glMatrixArrayType === 'undefined') {
             parentModule.Core.call(this, width, height);
             this.GL = new GLUtil();
             this.currentScene3D = null;
+            var that = this;
             this.addEventListener('enterframe', function(e) {
-                if (!this.currentScene3D) {
+                if (!that.currentScene3D) {
                     return;
                 }
-                var nodes = this.currentScene3D.childNodes.slice();
+                
+                var nodes = that.currentScene3D.childNodes.slice();
                 var push = Array.prototype.push;
                 while (nodes.length) {
                     var node = nodes.pop();
@@ -102,10 +104,14 @@ if (typeof glMatrixArrayType === 'undefined') {
             this.detectColorManager = new DetectColorManager();
             this.detectFrameBuffer = new enchant.gl.FrameBuffer(core.width, core.height);
             this.defaultProgram = new enchant.gl.Shader(DEFAULT_VERTEX_SHADER_SOURCE, DEFAULT_FRAGMENT_SHADER_SOURCE);
+            this.postProgram = new enchant.gl.Shader(POST_VERTEX_SHADER_SOURCE, POST_FRAGMENT_SHADER_SOURCE);
             this.setDefaultProgram();
         },
         setDefaultProgram: function() {
             this.setProgram(this.defaultProgram);
+        },
+        setDefaultPostProgram: function() {
+            this.setProgram(this.postProgram);
         },
         setProgram: function(program) {
             program.use();
@@ -122,6 +128,7 @@ if (typeof glMatrixArrayType === 'undefined') {
         },
         _createStage: function(width, height, scale) {
             var div = createParentDiv();
+            div.id = "3d-stage"; // chengine
             var that = this;
             var stage = document.getElementById('enchant-stage');
             var cvs = this._canvas = createGLCanvas(width, height, scale);
@@ -129,6 +136,7 @@ if (typeof glMatrixArrayType === 'undefined') {
             var core = enchant.Core.instance;
             (function() {
                 var color = new Uint8Array(4);
+                var pixels = new Uint8Array(GAME_WIDTH * GAME_HEIGHT * 4);
                 var touching = null;
                 var sprite;
                 detect.addEventListener('touchstart', function(e) {
@@ -163,7 +171,8 @@ if (typeof glMatrixArrayType === 'undefined') {
             core.rootScene.addChild(detect);
         },
         _getContext: function(canvas, debug) {
-            var ctx = canvas.getContext(CONTEXT_NAME);
+            // Added buffer flag to be able to take screenshots
+            var ctx = canvas.getContext(CONTEXT_NAME, {preserveDrawingBuffer: true}); 
             if (!ctx) {
                 window['alert']('could not initialized WebGL');
                 throw new Error('could not initialized WebGL');
@@ -460,8 +469,8 @@ if (typeof glMatrixArrayType === 'undefined') {
          */
         destroy: function() {
             gl.deleteFramebuffer(this.framebuffer);
-            gl.deleteFramebuffer(this.colorbuffer);
-            gl.deleteFramebuffer(this.depthbuffer);
+            gl.deleteRenderbuffer(this.colorbuffer);
+            gl.deleteRenderbuffer(this.depthbuffer);
         }
     });
 
@@ -712,8 +721,8 @@ if (typeof glMatrixArrayType === 'undefined') {
          [/lang]
          */
         destroy: function() {
-            gl.deleteProgram(this._vShaderProgram);
-            gl.deleteProgram(this._fShaderProgram);
+            gl.deleteShader(this._vShaderProgram);
+            gl.deleteShader(this._fShaderProgram);
             gl.deleteProgram(this._program);
         }
     });
@@ -1354,7 +1363,7 @@ if (typeof glMatrixArrayType === 'undefined') {
             get: function() {
                 return this._src;
             },
-            set: function(source) {
+            set: function(source) { 
                 if (typeof source === 'undefined' ||
                     source === null) {
                     return;
@@ -1373,6 +1382,14 @@ if (typeof glMatrixArrayType === 'undefined') {
                     this._image = source._element;
                     onload();
                 } else if (typeof source === 'string') {
+                    // EDIT FOR MMD:
+                    // Throw away text after * i.e. mat01.bmp*asdf.sph
+                    // Doesn't look like it can handle those
+                    
+                    // TODO: Handle tga
+                    
+                    source = source.replace(/\*.*/, '');
+                
                     this._image = new Image();
                     this._image.onload = onload;
                     this._image.src = source;
@@ -2115,6 +2132,8 @@ if (typeof glMatrixArrayType === 'undefined') {
             this.bounding.parent = this;
 
             this.age = 0;
+            
+            this.flash = 0.0;
 
             this._x = 0;
             this._y = 0;
@@ -2762,7 +2781,7 @@ if (typeof glMatrixArrayType === 'undefined') {
                 aNormal: this.mesh._normals,
                 aTextureCoord: this.mesh._texCoords
             };
-
+            
             var uniforms = {
                 uModelMat: this.tmpMat,
                 uDetectColor: this.detectColor,
@@ -2773,7 +2792,8 @@ if (typeof glMatrixArrayType === 'undefined') {
                 uShininess: this.mesh.texture.shininess,
                 uNormMat: this._normMat,
                 uSampler: this.mesh.texture,
-                uUseTexture: useTexture
+                uUseTexture: useTexture,
+                uFlash: this.flash
             };
 
             var length = this.mesh.indices.length;
@@ -3481,6 +3501,19 @@ if (typeof glMatrixArrayType === 'undefined') {
              */
             this.lights = [];
 
+            this.verts = 
+            [
+                  1,  1,
+                 -1,  1,
+                 -1, -1,
+                  1,  1,
+                 -1, -1,
+                  1, -1,
+            ]; 
+            
+            this.postProcessingEnabled = false;
+            this.pixels = new Uint8Array(GAME_WIDTH * GAME_HEIGHT * 4);
+            
             this.identityMat = mat4.identity();
             this._backgroundColor = [0.0, 0.0, 0.0, 1.0];
 
@@ -3501,7 +3534,6 @@ if (typeof glMatrixArrayType === 'undefined') {
             };
             core.addEventListener('enterframe', func);
 
-
             var uniforms = {};
             uniforms['uUseCamera'] = 0.0;
             gl.activeTexture(gl.TEXTURE0);
@@ -3513,7 +3545,7 @@ if (typeof glMatrixArrayType === 'undefined') {
 
             this.setAmbientLight(new enchant.gl.AmbientLight());
             this.setDirectionalLight(new enchant.gl.DirectionalLight());
-            this.setCamera(new enchant.gl.Camera3D());
+            //this.setCamera(new enchant.gl.Camera3D());
         },
 
         /**
@@ -3615,7 +3647,8 @@ if (typeof glMatrixArrayType === 'undefined') {
             camera._changedProjection = true;
             this._camera = camera;
             enchant.Core.instance.GL.defaultProgram.setUniforms({
-                uUseCamera: 1.0
+                uUseCamera: 1.0,
+                uCamPos: [this._camera.x, this._camera.y, this._camera.z]
             });
         },
 
@@ -3787,15 +3820,69 @@ if (typeof glMatrixArrayType === 'undefined') {
                     this._camera._changedCenter = false;
                     this._camera._changedUpVector = false;
                     this._camera._changedProjection = false;
+                    uniforms['uCamPos'] = [this._camera.x, this._camera.y, this._camera.z]; //chengine
                 }
             }
+            
             program.setUniforms(uniforms);
 
             mat4.identity(this.identityMat);
             for (var i = 0, l = this.childNodes.length; i < l; i++) {
                 this.childNodes[i]._draw(this, detectTouch, this.identityMat);
             }
+            
+            if (this.postProcessingEnabled)
+            {
+                this._drawPost();
+            }
+        },
+        
+        _drawPost: function ()
+        {
+            var core = enchant.Core.instance;
+            
+            // BEGIN whole-scene post processing work
+            // NOTE: Performance drops significantly if post processing is enabled
+            
+            // Dump the state of the current frame buffer
+            if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE) 
+            {
+                gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+                gl.readPixels(0, 0, GAME_WIDTH, GAME_HEIGHT, gl.RGBA, gl.UNSIGNED_BYTE, this.pixels);
+            }
+            
+            // for (var i = 3; i < this.pixels.length; i += 4)
+            // {
+                // this.pixels[i] = 127;
+            // }  
+            
+            this.vertBuffer = this.vertBuffer || gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.vertBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.verts), gl.STATIC_DRAW);
+            gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+            gl.enableVertexAttribArray(0);
 
+            core.GL.setDefaultPostProgram();
+            
+            // Create an empty texture
+            this.postTex = this.postTex || gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, this.postTex);
+            
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, GAME_WIDTH, GAME_HEIGHT, 0, gl.RGBA, gl.UNSIGNED_BYTE, this.pixels);
+
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); 
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+            // Create a framebuffer and attach the texture
+            this.postFb = this.postFb || gl.createFramebuffer();
+            gl.bindFramebuffer(gl.FRAMEBUFFER, this.postFb);
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.postTex, 0);
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+            core.GL.setDefaultProgram();
         }
     });
 
@@ -4639,6 +4726,7 @@ if (typeof glMatrixArrayType === 'undefined') {
             if (rad > maxangle) {
                 rad = maxangle;
             }
+            
             vec3.scale(_tmpaxis, Math.sin(rad / 2) / alen, _tmpquat);
             _tmpquat[3] = Math.cos(rad / 2);
             quat4.inverse(origin.parentNode._globalrot, _tmpinv);
@@ -4654,7 +4742,81 @@ if (typeof glMatrixArrayType === 'undefined') {
         }
     });
 
-    var DEFAULT_VERTEX_SHADER_SOURCE = '\n\
+    // var DEFAULT_VERTEX_SHADER_SOURCE = '\n\
+    // attribute vec3 aVertexPosition;\n\
+    // attribute vec4 aVertexColor;\n\
+    // \n\
+    // attribute vec3 aNormal;\n\
+    // attribute vec2 aTextureCoord;\n\
+    // \n\
+    // uniform mat4 uModelMat;\n\
+    // uniform mat4 uRotMat;\n\
+    // uniform mat4 uCameraMat;\n\
+    // uniform mat4 uProjMat;\n\
+    // uniform mat3 uNormMat;\n\
+    // uniform float uUseCamera;\n\
+    // \n\
+    // varying vec2 vTextureCoord;\n\
+    // varying vec4 vColor;\n\
+    // varying vec3 vNormal;\n\
+    // \n\
+    // void main() {\n\
+        // vec4 p = uModelMat * vec4(aVertexPosition, 1.0);\n\
+        // gl_Position = uProjMat * (uCameraMat * uUseCamera) * p + uProjMat * p * (1.0 - uUseCamera);\n\
+        // vTextureCoord = aTextureCoord;\n\
+        // vColor = aVertexColor;\n\
+        // vNormal = uNormMat * aNormal;\n\
+    // }';
+
+    // var DEFAULT_FRAGMENT_SHADER_SOURCE = '\n\
+    // precision highp float;\n\
+    // \n\
+    // uniform sampler2D uSampler;\n\
+    // uniform float uUseDirectionalLight;\n\
+    // uniform vec3 uAmbientLightColor;\n\
+    // uniform vec3 uLightColor;\n\
+    // uniform vec3 uLookVec;\n\
+    // uniform vec4 uAmbient;\n\
+    // uniform vec4 uDiffuse;\n\
+    // uniform vec4 uSpecular;\n\
+    // uniform vec4 uEmission;\n\
+    // uniform vec4 uDetectColor;\n\
+    // uniform float uDetectTouch;\n\
+    // uniform float uUseTexture;\n\
+    // uniform float uShininess;\n\
+    // uniform vec3 uLightDirection;\n\
+    // \n\
+    // varying vec2 vTextureCoord;\n\
+    // varying vec4 vColor;\n\
+    // varying vec3 vNormal;\n\
+    // \n\
+    // \n\
+    // void main() {\n\
+        // float pi = 4.0 * atan(1.0);\n\
+        // vec4 texColor = texture2D(uSampler, vTextureCoord);\n\
+        // vec4 baseColor = vColor;\n\
+        // baseColor *= texColor * uUseTexture + vec4(1.0, 1.0, 1.0, 1.0) * (1.0 - uUseTexture);\n\
+        // float alpha = baseColor.a * uDetectColor.a * uDetectTouch + baseColor.a * (1.0 - uDetectTouch);\n\
+        // if (alpha < 0.2) {\n\
+            // discard;\n\
+        // }\n\
+        // else {\n\
+            // vec4 amb = uAmbient * vec4(uAmbientLightColor, 1.0);\n\
+            // vec3 N = normalize(vNormal);\n\
+            // vec3 L = normalize(uLightDirection);\n\
+            // vec3 E = normalize(uLookVec);\n\
+            // vec3 R = reflect(-L, N);\n\
+            // float lamber = max(dot(N, L) , 0.0);\n\
+            // vec4 dif = uDiffuse * lamber;\n\
+            // float s = max(dot(R, -E), 0.0);\n\
+            // vec4 specularColor = (uShininess + 2.0) / (2.0 * pi) * uSpecular * pow(s, uShininess) * sign(lamber);\n\
+            // gl_FragColor = (vec4(((amb + vec4(uLightColor, 1.0) * (dif + specularColor)) * baseColor).rgb, baseColor.a) \
+                // * uUseDirectionalLight + baseColor * (1.0 - uUseDirectionalLight)) \
+                // * (1.0 - uDetectTouch) + uDetectColor * uDetectTouch;\n\
+        // }\n\
+    // }';
+
+var DEFAULT_VERTEX_SHADER_SOURCE = '\n\
     attribute vec3 aVertexPosition;\n\
     attribute vec4 aVertexColor;\n\
     \n\
@@ -4667,20 +4829,34 @@ if (typeof glMatrixArrayType === 'undefined') {
     uniform mat4 uProjMat;\n\
     uniform mat3 uNormMat;\n\
     uniform float uUseCamera;\n\
+    uniform vec3 uCamPos;\n\
     \n\
     varying vec2 vTextureCoord;\n\
     varying vec4 vColor;\n\
     varying vec3 vNormal;\n\
+    varying float vEyeDist;\n\
     \n\
     void main() {\n\
         vec4 p = uModelMat * vec4(aVertexPosition, 1.0);\n\
+        \n\
         gl_Position = uProjMat * (uCameraMat * uUseCamera) * p + uProjMat * p * (1.0 - uUseCamera);\n\
+        \n\
+        vec4 vertPos = p;\n\
+        vec4 c = vec4(uCamPos, 1.0);\n\
+        // Compute the distance to eye\n\
+        vEyeDist = sqrt( (vertPos.x - c.x) *\n\
+        (vertPos.x - c.x) +\n\
+        (vertPos.y - c.y) *\n\
+        (vertPos.y - c.y) +\n\
+        (vertPos.z - c.z) *\n\
+        (vertPos.z - c.z) );\n\
+        \n\
         vTextureCoord = aTextureCoord;\n\
         vColor = aVertexColor;\n\
         vNormal = uNormMat * aNormal;\n\
     }';
 
-    var DEFAULT_FRAGMENT_SHADER_SOURCE = '\n\
+var DEFAULT_FRAGMENT_SHADER_SOURCE = '\n\
     precision highp float;\n\
     \n\
     uniform sampler2D uSampler;\n\
@@ -4697,13 +4873,31 @@ if (typeof glMatrixArrayType === 'undefined') {
     uniform float uUseTexture;\n\
     uniform float uShininess;\n\
     uniform vec3 uLightDirection;\n\
+    uniform float uUseFog;\n\
+    uniform float uFlash;\n\
     \n\
     varying vec2 vTextureCoord;\n\
     varying vec4 vColor;\n\
     varying vec3 vNormal;\n\
+    varying float vEyeDist;\n\
     \n\
+    float computeLinearFogFactor()\n\
+    {\n\
+        float factor;\n\
+        float maxFogDist = 4000.0;\n\
+        float minFogDist = 200.0;\n\
+        \n\
+        // Compute linear fog equation\n\
+        factor = (maxFogDist - vEyeDist) / (maxFogDist - minFogDist);\n\
+        \n\
+        // Clamp in the [0,1] range\n\
+        factor = clamp(factor, 0.0, 1.0);\n\
+        \n\
+        return factor;\n\
+    }\n\
     \n\
     void main() {\n\
+        \n\
         float pi = 4.0 * atan(1.0);\n\
         vec4 texColor = texture2D(uSampler, vTextureCoord);\n\
         vec4 baseColor = vColor;\n\
@@ -4720,12 +4914,127 @@ if (typeof glMatrixArrayType === 'undefined') {
             vec3 R = reflect(-L, N);\n\
             float lamber = max(dot(N, L) , 0.0);\n\
             vec4 dif = uDiffuse * lamber;\n\
-            float s = max(dot(R, -E), 0.0);\n\
+            float s = max(dot(R, -E), 0.001);\n\
             vec4 specularColor = (uShininess + 2.0) / (2.0 * pi) * uSpecular * pow(s, uShininess) * sign(lamber);\n\
-            gl_FragColor = (vec4(((amb + vec4(uLightColor, 1.0) * (dif + specularColor)) * baseColor).rgb, baseColor.a) \
-                * uUseDirectionalLight + baseColor * (1.0 - uUseDirectionalLight)) \
-                * (1.0 - uDetectTouch) + uDetectColor * uDetectTouch;\n\
+            \n\
+            gl_FragColor = ((vec4(((amb + vec4(uLightColor, 1.0) * (dif + specularColor)) * baseColor).rgb, baseColor.a) \
+            * uUseDirectionalLight + baseColor * (1.0 - uUseDirectionalLight)) \
+            * (1.0 - uDetectTouch) + uDetectColor * uDetectTouch);\n\
+            // Apply fog\n\
+            if (uUseFog > 0.0)\n\
+            {\n\
+                \n\
+                float fogFactor = computeLinearFogFactor();\n\
+                vec4 fogColor = vec4(1.0, 0.0, 0.0, 1.0);\n\
+                \n\
+                //These both work\n\
+                //gl_FragColor *= fogFactor + fogColor * (1.0 - fogFactor);\n\
+                gl_FragColor = mix(gl_FragColor, vec4(1.0, 1.0, 1.0, 1.0), (1.0 - fogFactor));\n\
+            }\n\
         }\n\
+        if (uFlash > 0.0)\
+        {\
+            gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);\
+        }\
     }';
-
+    
+ 
+    var POST_VERTEX_SHADER_SOURCE = '\n\
+        attribute vec4 a_position;\n\
+        varying vec2 v_texcoord;\n\
+        void main() {\n\
+            gl_Position = a_position;\n\
+            v_texcoord = a_position.xy * 0.5 + 0.5;\n\
+        }\n\
+    ';
+    var POST_FRAGMENT_SHADER_SOURCE = '\n\
+        precision mediump float;\n\
+        varying vec2 v_texcoord;\n\
+        uniform sampler2D u_sampler;\n\
+        // Blur stuff\n\
+        vec2 delta = vec2(1, 1); //Use float 0.01 on normal blur\n\
+        vec2 delta2 = vec2(-1, 1);\n\
+        float random(vec3 scale, float seed) {\n\
+            return fract(sin(dot(gl_FragCoord.xyz + seed, scale)) * 43758.5453 + seed);\n\
+        }\
+        void main() {\n\
+            vec4 color = vec4(0.0);\
+            float total = 0.0;\
+            float offset = random(vec3(12.9898, 78.233, 151.7182), 0.0);\n\
+            \
+            vec2 start = vec2(125, 150);\
+            vec2 end = vec2(500, 150);\
+            vec2 texSize = vec2(640, 360);\
+            float blurRadius = 80.0;\
+            float gradientRadius = 700.0;\
+            vec2 normal = normalize(vec2(start.y - end.y, end.x - start.x));\
+            float radius = smoothstep(0.0, 1.0, abs(dot(v_texcoord * texSize - start, normal)) / gradientRadius) * blurRadius;\
+            \
+            for (float t = -30.0; t <= 30.0; t++) {\
+                float percent = (t + offset - 0.5) / 30.0;\
+                float weight = 1.0 - abs(percent);\
+                vec2 amt = v_texcoord + (delta / texSize * percent * radius);\
+                vec4 sample = texture2D(u_sampler, amt);\
+                \
+                sample.rgb *= sample.a;\
+                \
+                color += sample * weight;\
+                total += weight;\
+            }\
+            \
+            for (float t = -30.0; t <= 30.0; t++) {\
+                float percent = (t + offset - 0.5) / 30.0;\
+                float weight = 1.0 - abs(percent);\
+                vec2 amt = v_texcoord + (delta2 / texSize * percent * radius);\
+                vec4 sample = texture2D(u_sampler, amt);\
+                \
+                /*if ((amt.y > 0.2 && amt.y < 0.8))\
+                {\
+                    sample.rgb *= 1.3;\
+                }*/\
+                sample.rgb *= sample.a;\
+                \
+                color += sample * weight;\
+                total += weight;\
+            }\
+            \
+            gl_FragColor = color / total;\
+            \
+            /* switch back from pre-multiplied alpha */\
+            gl_FragColor.rgb /= gl_FragColor.a + 0.00001;\
+        }\n\
+    ';   
+    
+    var OLD_BLUR_FRAGMENT_SHADER_SOURCE = '\n\
+        precision mediump float;\n\
+        varying vec2 v_texcoord;\n\
+        uniform sampler2D u_sampler;\n\
+        // Blur stuff\n\
+        const float RADIUS = 0.75;\n\
+        const float SOFTNESS = 0.6;\n\
+        const float blurSize = 1.0/512.0;\n\
+        void main() {\n\
+        gl_FragColor = texture2D(u_sampler, v_texcoord);\n\
+        \n\
+        vec4 texColor = vec4(0.0);\n\
+        texColor += texture2D(u_sampler, v_texcoord - 4.0*blurSize) * 0.05;\n\
+        texColor += texture2D(u_sampler, v_texcoord - 3.0*blurSize) * 0.09;\n\
+        texColor += texture2D(u_sampler, v_texcoord - 2.0*blurSize) * 0.12;\n\
+        texColor += texture2D(u_sampler, v_texcoord - blurSize) * 0.15;\n\
+        texColor += texture2D(u_sampler, v_texcoord) * 0.16;\n\
+        texColor += texture2D(u_sampler, v_texcoord + blurSize) * 0.15;\n\
+        texColor += texture2D(u_sampler, v_texcoord + 2.0*blurSize) * 0.12;\n\
+        texColor += texture2D(u_sampler, v_texcoord + 3.0*blurSize) * 0.09;\n\
+        texColor += texture2D(u_sampler, v_texcoord + 4.0*blurSize) * 0.05;\n\
+        \n\
+        vec4 timedColor = vec4(0);\n\
+        \n\
+        vec2 position = (gl_FragCoord.xy / vec2(640, 360)) - vec2(0.5);\n\
+        float len = length(position);\n\
+        float vignette = 1.0;//smoothstep(RADIUS, RADIUS-SOFTNESS, len);\n\
+        texColor.rgb = mix(texColor.rgb, texColor.rgb * vignette, 0.5);\n\
+        vec4 blurColor = vec4(texColor.rgb, texColor.a);\n\
+        gl_FragColor.rgb = mix(gl_FragColor.rgb, blurColor.rgb, 1.0);\n\
+    }\n\
+    ';   
 }());

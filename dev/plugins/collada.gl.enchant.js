@@ -63,7 +63,7 @@ if (enchant.gl !== undefined) {
             if (typeof onload !== 'function') {
                 return;
             }
-
+            
             var rootSprite = new enchant.gl.collada.RootColladaSprite3D();
             rootSprite.addEventListener('load', onload);
             rootSprite.addEventListener('error', onerror);
@@ -1421,6 +1421,7 @@ if (enchant.gl !== undefined) {
                             //sprite.translate(currentPose._position[2],currentPose._position[1],currentPose._position[0]);
                         //});
                     //}
+  
                     this.addChild(sprite);
                     currentTriangle++;
                 } while (currentTriangle < trianglesLength);
@@ -1719,6 +1720,7 @@ if (enchant.gl !== undefined) {
                     uDetectTouch: detect,
                     uAmbientLightColor: scene.ambientLight.color,
                     uPMatrix: scene._camera.projMat,
+                    uCamPos: [scene._camera.x, scene._camera.y, scene._camera.z],
                     uMVMatrix: this.uMVMatrix,
                     uNMatrix: this.uNMatrix,
                     uLightDirection: [
@@ -1781,6 +1783,7 @@ if (enchant.gl !== undefined) {
             uniform mat4 uMVMatrix;\n\
             uniform mat4 uPMatrix;\n\
             uniform mat3 uNMatrix;\n\
+            uniform vec3 uCamPos;\n\
             \n\
             uniform vec3 uBonePos[55];\n\
             uniform vec4 uBoneRot[55];\n\
@@ -1798,6 +1801,8 @@ if (enchant.gl !== undefined) {
             varying vec3 vNormal;\n\
             varying vec4 vColor;\n\
             varying vec2 vTextureCoord;\n\
+            \n\
+            varying float vEyeDist;\n\
             \n\
             \n\
             vec3 qtransform(vec4 q, vec3 v) {\n\
@@ -1824,6 +1829,18 @@ if (enchant.gl !== undefined) {
                 vTextureCoord = aTextureCoord;\n\
                 vNormal = normalize(uNMatrix * normal);\n\
                 vNormal = normalize(uNMatrix * aVertexNormal);\n\
+                \n\
+                vec4 p = uMVMatrix * vec4(position, 1.0);\n\
+                vec4 vertPos = p;\n\
+                vec4 c = vec4(uCamPos, 1.0);\n\
+                // Compute the distance to eye\n\
+                vEyeDist = sqrt( (vertPos.x - c.x) *\n\
+                (vertPos.x - c.x) +\n\
+                (vertPos.y - c.y) *\n\
+                (vertPos.y - c.y) +\n\
+                (vertPos.z - c.z) *\n\
+                (vertPos.z - c.z) );\n\
+                \n\
             }\n\
             ';
 
