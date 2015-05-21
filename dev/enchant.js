@@ -7154,6 +7154,7 @@ if (window.Deferred) {
             } else {
                 err = new Error('failed in Deferred');
                 err.arg = arg;
+                console.log("Deferred error: " + arg.message);
                 throw err;
             }
         }
