@@ -4874,6 +4874,7 @@ var DEFAULT_FRAGMENT_SHADER_SOURCE = '\n\
     uniform float uShininess;\n\
     uniform vec3 uLightDirection;\n\
     uniform float uUseFog;\n\
+    uniform vec4 uFogColor;\n\
     uniform float uFlash;\n\
     \n\
     varying vec2 vTextureCoord;\n\
@@ -4925,11 +4926,10 @@ var DEFAULT_FRAGMENT_SHADER_SOURCE = '\n\
             {\n\
                 \n\
                 float fogFactor = computeLinearFogFactor();\n\
-                vec4 fogColor = vec4(1.0, 0.0, 0.0, 1.0);\n\
                 \n\
-                //These both work\n\
-                //gl_FragColor *= fogFactor + fogColor * (1.0 - fogFactor);\n\
-                gl_FragColor = mix(gl_FragColor, vec4(1.0, 1.0, 1.0, 1.0), (1.0 - fogFactor));\n\
+                //These both work, top one is more like a mix\n\
+                //gl_FragColor *= fogFactor + uFogColor * (1.0 - fogFactor);\n\
+                gl_FragColor = mix(gl_FragColor, uFogColor, (1.0 - fogFactor));\n\
             }\n\
         }\n\
         if (uFlash > 0.0)\
