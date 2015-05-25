@@ -4875,6 +4875,7 @@ var DEFAULT_FRAGMENT_SHADER_SOURCE = '\n\
     uniform vec3 uLightDirection;\n\
     uniform float uUseFog;\n\
     uniform vec4 uFogColor;\n\
+    uniform vec2 uFogDistance;\n\
     uniform float uFlash;\n\
     \n\
     varying vec2 vTextureCoord;\n\
@@ -4885,8 +4886,8 @@ var DEFAULT_FRAGMENT_SHADER_SOURCE = '\n\
     float computeLinearFogFactor()\n\
     {\n\
         float factor;\n\
-        float maxFogDist = 4000.0;\n\
-        float minFogDist = 200.0;\n\
+        float maxFogDist = uFogDistance.y;\n\
+        float minFogDist = uFogDistance.x;\n\
         \n\
         // Compute linear fog equation\n\
         factor = (maxFogDist - vEyeDist) / (maxFogDist - minFogDist);\n\
