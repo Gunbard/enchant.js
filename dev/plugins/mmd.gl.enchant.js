@@ -456,7 +456,7 @@ var MMD = {};
                 vec3.subtract(tmp, b2.head_pos, tmp2);
                 vpos2.set(tmp2, i * 3);
                 normals.set([ v.nx, v.ny, v.nz ], i * 3);
-                texCoords.set([ v.u, v.v ], i * 2);
+                texCoords.set([ v.u, 1-v.v ], i * 2);
                 bone1pos.set(b1.head_pos, i * 3);
                 bone2pos.set(b2.head_pos, i * 3);
                 quats1.set([ 0, 0, 0, 1 ], i * 4);
