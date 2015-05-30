@@ -4857,7 +4857,7 @@ var DEFAULT_VERTEX_SHADER_SOURCE = '\n\
     }';
 
 var DEFAULT_FRAGMENT_SHADER_SOURCE = '\n\
-    precision highp float;\n\
+    precision lowp float;\n\
     \n\
     uniform sampler2D uSampler;\n\
     uniform float uUseDirectionalLight;\n\
@@ -4949,7 +4949,7 @@ var DEFAULT_FRAGMENT_SHADER_SOURCE = '\n\
         }\n\
     ';
     var POST_FRAGMENT_SHADER_SOURCE = '\n\
-        precision mediump float;\n\
+        precision lowp float;\n\
         varying vec2 v_texcoord;\n\
         uniform sampler2D u_sampler;\n\
         // Blur stuff\n\

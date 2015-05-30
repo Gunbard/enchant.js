@@ -863,6 +863,9 @@ var MMD = {};
     };
 
     var MMD_VERTEX_SHADER_SOURCE = '\n\
+        #ifdef GL_ES\n\
+            precision lowp float;\n\
+        #endif\n\
         uniform mat4 uMVMatrix;\n\
         uniform mat4 uPMatrix;\n\
         uniform mat4 uNMatrix;\n\
@@ -958,7 +961,7 @@ var MMD = {};
 
     var MMD_FRAGMENT_SHADER_SOURCE = '\n\
         #ifdef GL_ES\n\
-            precision highp float;\n\
+            precision lowp float;\n\
         #endif\n\
         \n\
         varying vec2 vTextureCoord;\n\
