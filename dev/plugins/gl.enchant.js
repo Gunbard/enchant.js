@@ -1478,12 +1478,12 @@ if (typeof glMatrixArrayType === 'undefined') {
         },
         _bufferData: function() {
             this.bind();
-            gl.bufferData(this.btype, new this.Atype(this._array), gl.STATIC_DRAW);
+            gl.bufferData(this.btype, new this.Atype(this._array), gl.DYNAMIC_DRAW);
             this.unbind();
         },
         _bufferDataFast: function() {
             this.bind();
-            gl.bufferData(this.btype, this._array, gl.STATIC_DRAW);
+            gl.bufferSubData(this.btype, 0, this._array);
             this.unbind();
         },
         _setToAttrib: function(loc) {
@@ -4697,7 +4697,7 @@ if (typeof glMatrixArrayType === 'undefined') {
         _solveIK: function(effector, target, bones, maxangle, iteration) {
             var len, origin;
             vec3.subtract(target._origin, target.parentNode._origin, _tmpinv);
-            var threshold = vec3.length(_tmpinv) * 0.1;
+            var threshold = vec3.length(_tmpinv) * 0.05;
             for (var i = 0; i < iteration; i++) {
                 vec3.subtract(target._globalpos, effector._globalpos, _tmpinv);
                 len = vec3.length(_tmpinv);
