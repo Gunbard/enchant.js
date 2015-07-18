@@ -78,9 +78,11 @@ if (enchant.gl !== undefined) {
             };
             req.onload = function() {
                 try {
+                    var parser = new DOMParser();
+                    var xmlDoc = parser.parseFromString(req.response, "application/xml");
                     var maxbonenum = 6;
                     var lib = {};
-                    var collada = req.responseXML.getElementsByTagName('COLLADA')[0];
+                    var collada = xmlDoc.getElementsByTagName('COLLADA')[0];
                     for (var i = 0, l = availableLibraryFeatures.length; i < l; i++) {
                         lib[availableLibraryFeatures[i].libraryName] = availableLibraryFeatures[i].loadLibraryFromXML(collada, url);
                     }
