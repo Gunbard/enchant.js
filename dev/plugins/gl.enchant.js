@@ -4742,80 +4742,6 @@ if (typeof glMatrixArrayType === 'undefined') {
         }
     });
 
-    // var DEFAULT_VERTEX_SHADER_SOURCE = '\n\
-    // attribute vec3 aVertexPosition;\n\
-    // attribute vec4 aVertexColor;\n\
-    // \n\
-    // attribute vec3 aNormal;\n\
-    // attribute vec2 aTextureCoord;\n\
-    // \n\
-    // uniform mat4 uModelMat;\n\
-    // uniform mat4 uRotMat;\n\
-    // uniform mat4 uCameraMat;\n\
-    // uniform mat4 uProjMat;\n\
-    // uniform mat3 uNormMat;\n\
-    // uniform float uUseCamera;\n\
-    // \n\
-    // varying vec2 vTextureCoord;\n\
-    // varying vec4 vColor;\n\
-    // varying vec3 vNormal;\n\
-    // \n\
-    // void main() {\n\
-        // vec4 p = uModelMat * vec4(aVertexPosition, 1.0);\n\
-        // gl_Position = uProjMat * (uCameraMat * uUseCamera) * p + uProjMat * p * (1.0 - uUseCamera);\n\
-        // vTextureCoord = aTextureCoord;\n\
-        // vColor = aVertexColor;\n\
-        // vNormal = uNormMat * aNormal;\n\
-    // }';
-
-    // var DEFAULT_FRAGMENT_SHADER_SOURCE = '\n\
-    // precision highp float;\n\
-    // \n\
-    // uniform sampler2D uSampler;\n\
-    // uniform float uUseDirectionalLight;\n\
-    // uniform vec3 uAmbientLightColor;\n\
-    // uniform vec3 uLightColor;\n\
-    // uniform vec3 uLookVec;\n\
-    // uniform vec4 uAmbient;\n\
-    // uniform vec4 uDiffuse;\n\
-    // uniform vec4 uSpecular;\n\
-    // uniform vec4 uEmission;\n\
-    // uniform vec4 uDetectColor;\n\
-    // uniform float uDetectTouch;\n\
-    // uniform float uUseTexture;\n\
-    // uniform float uShininess;\n\
-    // uniform vec3 uLightDirection;\n\
-    // \n\
-    // varying vec2 vTextureCoord;\n\
-    // varying vec4 vColor;\n\
-    // varying vec3 vNormal;\n\
-    // \n\
-    // \n\
-    // void main() {\n\
-        // float pi = 4.0 * atan(1.0);\n\
-        // vec4 texColor = texture2D(uSampler, vTextureCoord);\n\
-        // vec4 baseColor = vColor;\n\
-        // baseColor *= texColor * uUseTexture + vec4(1.0, 1.0, 1.0, 1.0) * (1.0 - uUseTexture);\n\
-        // float alpha = baseColor.a * uDetectColor.a * uDetectTouch + baseColor.a * (1.0 - uDetectTouch);\n\
-        // if (alpha < 0.2) {\n\
-            // discard;\n\
-        // }\n\
-        // else {\n\
-            // vec4 amb = uAmbient * vec4(uAmbientLightColor, 1.0);\n\
-            // vec3 N = normalize(vNormal);\n\
-            // vec3 L = normalize(uLightDirection);\n\
-            // vec3 E = normalize(uLookVec);\n\
-            // vec3 R = reflect(-L, N);\n\
-            // float lamber = max(dot(N, L) , 0.0);\n\
-            // vec4 dif = uDiffuse * lamber;\n\
-            // float s = max(dot(R, -E), 0.0);\n\
-            // vec4 specularColor = (uShininess + 2.0) / (2.0 * pi) * uSpecular * pow(s, uShininess) * sign(lamber);\n\
-            // gl_FragColor = (vec4(((amb + vec4(uLightColor, 1.0) * (dif + specularColor)) * baseColor).rgb, baseColor.a) \
-                // * uUseDirectionalLight + baseColor * (1.0 - uUseDirectionalLight)) \
-                // * (1.0 - uDetectTouch) + uDetectColor * uDetectTouch;\n\
-        // }\n\
-    // }';
-
 var DEFAULT_VERTEX_SHADER_SOURCE = '\n\
     attribute vec3 aVertexPosition;\n\
     attribute vec4 aVertexColor;\n\
@@ -4918,6 +4844,7 @@ var DEFAULT_FRAGMENT_SHADER_SOURCE = '\n\
             vec4 dif = uDiffuse * lamber;\n\
             float s = max(dot(R, -E), 0.001);\n\
             vec4 specularColor = (uShininess + 2.0) / (2.0 * pi) * uSpecular * pow(s, uShininess) * sign(lamber);\n\
+            specularColor += 0.2;\n\
             \n\
             gl_FragColor = ((vec4(((amb + vec4(uLightColor, 1.0) * (dif + specularColor)) * baseColor).rgb, baseColor.a) \
             * uUseDirectionalLight + baseColor * (1.0 - uUseDirectionalLight)) \
@@ -5004,38 +4931,5 @@ var DEFAULT_FRAGMENT_SHADER_SOURCE = '\n\
             /* switch back from pre-multiplied alpha */\
             gl_FragColor.rgb /= gl_FragColor.a + 0.00001;\
         }\n\
-    ';   
-    
-    var OLD_BLUR_FRAGMENT_SHADER_SOURCE = '\n\
-        precision mediump float;\n\
-        varying vec2 v_texcoord;\n\
-        uniform sampler2D u_sampler;\n\
-        // Blur stuff\n\
-        const float RADIUS = 0.75;\n\
-        const float SOFTNESS = 0.6;\n\
-        const float blurSize = 1.0/512.0;\n\
-        void main() {\n\
-        gl_FragColor = texture2D(u_sampler, v_texcoord);\n\
-        \n\
-        vec4 texColor = vec4(0.0);\n\
-        texColor += texture2D(u_sampler, v_texcoord - 4.0*blurSize) * 0.05;\n\
-        texColor += texture2D(u_sampler, v_texcoord - 3.0*blurSize) * 0.09;\n\
-        texColor += texture2D(u_sampler, v_texcoord - 2.0*blurSize) * 0.12;\n\
-        texColor += texture2D(u_sampler, v_texcoord - blurSize) * 0.15;\n\
-        texColor += texture2D(u_sampler, v_texcoord) * 0.16;\n\
-        texColor += texture2D(u_sampler, v_texcoord + blurSize) * 0.15;\n\
-        texColor += texture2D(u_sampler, v_texcoord + 2.0*blurSize) * 0.12;\n\
-        texColor += texture2D(u_sampler, v_texcoord + 3.0*blurSize) * 0.09;\n\
-        texColor += texture2D(u_sampler, v_texcoord + 4.0*blurSize) * 0.05;\n\
-        \n\
-        vec4 timedColor = vec4(0);\n\
-        \n\
-        vec2 position = (gl_FragCoord.xy / vec2(640, 360)) - vec2(0.5);\n\
-        float len = length(position);\n\
-        float vignette = 1.0;//smoothstep(RADIUS, RADIUS-SOFTNESS, len);\n\
-        texColor.rgb = mix(texColor.rgb, texColor.rgb * vignette, 0.5);\n\
-        vec4 blurColor = vec4(texColor.rgb, texColor.a);\n\
-        gl_FragColor.rgb = mix(gl_FragColor.rgb, blurColor.rgb, 1.0);\n\
-    }\n\
-    ';   
+    ';
 }());

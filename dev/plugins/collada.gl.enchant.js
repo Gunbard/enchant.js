@@ -1252,7 +1252,9 @@ if (enchant.gl !== undefined) {
                         texture.specular = effect.specular;
                         texture.shininess = effect.shininess[0];
                         if (effect.imageSrc) {
-                            texture.src=libImages[effect.imageSrc].initFrom;
+                            if (libImages[effect.imageSrc]) {
+                                texture.src=libImages[effect.imageSrc].initFrom;
+                            }
                         }
                     }
                 }
