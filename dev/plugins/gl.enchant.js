@@ -304,7 +304,7 @@ if (typeof glMatrixArrayType === 'undefined') {
             if (mipmap) {
                 filter = gl.LINEAR_MIPMAP_LINEAR;
             } else {
-                filter = gl.NEAREST;
+                filter = gl.LINEAR;
             }
             if (!power) {
                 wrap = gl.CLAMP_TO_EDGE;
