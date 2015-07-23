@@ -1024,7 +1024,7 @@ var MMD = {};
                 return;\n\
             }\n\
             if (uCenterPoint) {\n\
-                vec2 uv = gl_PointCoord * 2.0 - 1.0;\n\
+                vec2 uv = vec2(0.5) * 2.0 - 1.0;\n\
                 float w = dot(uv, uv);\n\
                 if (w < 0.3 || (w > 0.5 && w < 1.0)) {\n\
                     gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);\n\
