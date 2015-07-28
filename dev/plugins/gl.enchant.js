@@ -2806,6 +2806,7 @@ if (typeof glMatrixArrayType === 'undefined') {
 
             if (this.childNodes.length) {
                 for (var i = 0, l = this.childNodes.length; i < l; i++) {
+                    this.childNodes[i].flash = this.childNodes[i].parentNode.flash;
                     this.childNodes[i]._draw(scene, detectTouch, this.tmpMat);
                 }
             }
@@ -4826,6 +4827,11 @@ var DEFAULT_FRAGMENT_SHADER_SOURCE = '\n\
     \n\
     void main() {\n\
         \n\
+        if (uFlash > 0.0)\
+        {\
+            gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);\
+            return;\
+        }\
         float pi = 4.0 * atan(1.0);\n\
         vec4 texColor = texture2D(uSampler, vTextureCoord);\n\
         vec4 baseColor = vColor;\n\
@@ -4860,10 +4866,6 @@ var DEFAULT_FRAGMENT_SHADER_SOURCE = '\n\
                 gl_FragColor = mix(gl_FragColor, uFogColor, (1.0 - fogFactor));\n\
             }\n\
         }\n\
-        if (uFlash > 0.0)\
-        {\
-            gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);\
-        }\
     }';
     
  
