@@ -338,6 +338,9 @@ var MMD = {};
                     u.uTexture = 0;
                     u.uUseSphereMap = 0;
                 }
+                
+                u.uFlash = this.flash;
+                
                 core.GL.currentProgram.setUniforms(u);
 
 
@@ -997,6 +1000,7 @@ var MMD = {};
         uniform bool uAxis;\n\
         uniform vec3 uAxisColor;\n\
         uniform bool uCenterPoint;\n\
+        uniform float uFlash;\n\
         \n\
         // from http://spidergl.org/example.php?id=6\n\
         vec4 pack_depth(const in float depth) {\n\
@@ -1014,6 +1018,11 @@ var MMD = {};
         }\n\
         \n\
         void main() {\n\
+            if (uFlash > 0.0)\
+            {\
+                gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);\
+                return;\
+            }\
             if (uGenerateShadowMap) {\n\
                \n\
                 gl_FragColor = pack_depth(gl_FragCoord.z);\n\
