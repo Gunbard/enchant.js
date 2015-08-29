@@ -659,7 +659,7 @@ if (enchant.gl !== undefined && enchant.gl.primitive !== undefined) {
              */
             initialize: function(r, h, mass) {
                 var scale = new Ammo.btVector3(r, h, r);
-                var shape = new Ammo.btCylinderShape(scale);
+                var shape = new Ammo.btCylinderShapeZ(scale);
                 enchant.gl.physics.Rigid.call(this, shape, mass);
                 Ammo.destroy(scale);
             }
