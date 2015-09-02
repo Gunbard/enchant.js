@@ -2801,8 +2801,8 @@ if (typeof glMatrixArrayType === 'undefined') {
         },
 
         _draw: function(scene, detectTouch, baseMatrix) {
-            // Do not draw objects behind the camera
-            if (!this.collada && this.parentNode && !this.parentNode.collada && !this.skybox)
+            // Do not draw objects behind the camera unless they are part of the world
+            if (!this.world && this.parentNode && !this.parentNode.world && !this.skybox)
             {
                 var scene = enchant.Core.instance.currentScene3D;
                 var cam = scene.getCamera();
