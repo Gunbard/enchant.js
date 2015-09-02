@@ -2801,7 +2801,21 @@ if (typeof glMatrixArrayType === 'undefined') {
         },
 
         _draw: function(scene, detectTouch, baseMatrix) {
+            // Do not draw objects behind the camera
+            if (!this.collada && this.parentNode && !this.parentNode.collada && !this.skybox)
+            {
+                var scene = enchant.Core.instance.currentScene3D;
+                var cam = scene.getCamera();
+                var camRot = getRot(chengine.getCameraLockedRotation());
+                var rot = getRot(chengine.rotationTowards(this, scene.getCamera()));
 
+                var angle = Math.abs((rot.y + 360) - (camRot.y + 360));
+                if (angle > 180)
+                {
+                    return;
+                }
+            }
+            
             this._transform(baseMatrix);
 
             if (this.childNodes.length) {
