@@ -2801,17 +2801,17 @@ if (typeof glMatrixArrayType === 'undefined') {
         },
 
         _draw: function(scene, detectTouch, baseMatrix) {
-            // Do not draw objects behind the camera unless they are part of the world
-            if (!this.world && this.parentNode && !this.parentNode.world && !this.skybox)
-            {
-                var scene = enchant.Core.instance.currentScene3D;
-                var cam = scene.getCamera();
-                var camRot = getRot(chengine.getCameraLockedRotation());
-                var rot = getRot(chengine.rotationTowards(this, scene.getCamera()));
+            this.drawn = true;
 
-                var angle = Math.abs((rot.y + 360) - (camRot.y + 360));
-                if (angle > 180)
+            // Do not draw objects that the camera cannot see unless they are part of the world
+            if (!this.isWorld && (this.parentNode && !this.parentNode.isWorld) && !this.skybox)
+            {
+                var threshold = 100;
+                var position = chengine.reverseRayPick(this);
+                if ((position.x < -threshold) || (position.x > (GAME_WIDTH + threshold)) ||
+                    (position.y < -threshold) || (position.y > (GAME_HEIGHT + threshold)))
                 {
+                    this.drawn = false;
                     return;
                 }
             }
