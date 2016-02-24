@@ -2804,12 +2804,20 @@ if (typeof glMatrixArrayType === 'undefined') {
             this.drawn = true;
 
             // Do not draw objects that the camera cannot see unless they are part of the world
-            if (!this.isWorld && (this.parentNode && !this.parentNode.isWorld) && !this.skybox)
+            if (!this.isWorld && (this.parentNode && !this.parentNode.isWorld) && !this.skybox &&
+                !this.alwaysDraw)
             {
                 var threshold = 100;
                 var position = chengine.reverseRayPick(this);
                 if ((position.x < -threshold) || (position.x > (GAME_WIDTH + threshold)) ||
                     (position.y < -threshold) || (position.y > (GAME_HEIGHT + threshold)))
+                {
+                    this.drawn = false;
+                    return;
+                }
+                
+                var maxDrawDistance = 1500;
+                if (Math.abs(distanceToPoint(this, chengine.getScene().getCamera())) > maxDrawDistance)
                 {
                     this.drawn = false;
                     return;
