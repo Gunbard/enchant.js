@@ -213,6 +213,9 @@ enchant.Label = enchant.Class.create(enchant.Entity, {
         }
     },
     getMetrics: function(text) {
+        // This is extrememly expensive and not very useful, so discard
+        return {width: 0, height: 0};
+        
         var ret = {};
         var div, width, height;
         if (document.body) {

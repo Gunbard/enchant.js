@@ -2376,7 +2376,6 @@ if (typeof glMatrixArrayType === 'undefined') {
             }
         },
 
-
         /**
          [lang:ja]
          * 他のオブジェクトとの衝突判定.
@@ -2801,8 +2800,8 @@ if (typeof glMatrixArrayType === 'undefined') {
         },
 
         _draw: function(scene, detectTouch, baseMatrix) {
-            this.drawn = true;
-
+            chengine.debug.drawn3DObjects++;
+            
             // Do not draw objects that the camera cannot see unless they are part of the world
             if (!this.isWorld && (this.parentNode && !this.parentNode.isWorld) && !this.skybox &&
                 !this.alwaysDraw)
@@ -2812,14 +2811,14 @@ if (typeof glMatrixArrayType === 'undefined') {
                 if ((position.x < -threshold) || (position.x > (GAME_WIDTH + threshold)) ||
                     (position.y < -threshold) || (position.y > (GAME_HEIGHT + threshold)))
                 {
-                    this.drawn = false;
+                    chengine.debug.drawn3DObjects--;
                     return;
                 }
                 
                 var maxDrawDistance = 1500;
                 if (Math.abs(distanceToPoint(this, chengine.getScene().getCamera())) > maxDrawDistance)
                 {
-                    this.drawn = false;
+                    chengine.debug.drawn3DObjects--;
                     return;
                 }
             }
