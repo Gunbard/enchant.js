@@ -2806,7 +2806,7 @@ if (typeof glMatrixArrayType === 'undefined') {
             if (!this.isWorld && (this.parentNode && !this.parentNode.isWorld) && !this.skybox &&
                 !this.alwaysDraw)
             {
-                var threshold = 100;
+                var threshold = 200;
                 var position = chengine.reverseRayPick(this);
                 if ((position.x < -threshold) || (position.x > (GAME_WIDTH + threshold)) ||
                     (position.y < -threshold) || (position.y > (GAME_HEIGHT + threshold)))
@@ -3523,18 +3523,17 @@ if (typeof glMatrixArrayType === 'undefined') {
              */
             this.lights = [];
 
-            this.verts = 
-            [
+            this.verts = new Float32Array
+            ([
                   1,  1,
                  -1,  1,
                  -1, -1,
                   1,  1,
                  -1, -1,
                   1, -1,
-            ]; 
+            ]);
             
             this.postProcessingEnabled = false;
-            this.pixels = new Uint8Array(GAME_WIDTH * GAME_HEIGHT * 4);
             
             this.identityMat = mat4.identity();
             this._backgroundColor = [0.0, 0.0, 0.0, 1.0];
@@ -3862,29 +3861,30 @@ if (typeof glMatrixArrayType === 'undefined') {
         _drawPost: function ()
         {
             var core = enchant.Core.instance;
-            
+            this.pixels = this.pixels || new Uint8Array(GAME_WIDTH * GAME_HEIGHT * 4);
+
             // BEGIN whole-scene post processing work
             // NOTE: Performance drops significantly if post processing is enabled
             
             // Dump the state of the current frame buffer
-            if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE) 
+            if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE) 
             {
                 gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
                 gl.readPixels(0, 0, GAME_WIDTH, GAME_HEIGHT, gl.RGBA, gl.UNSIGNED_BYTE, this.pixels);
             }
+            else
+            {
+                return;
+            }
             
-            // for (var i = 3; i < this.pixels.length; i += 4)
-            // {
-                // this.pixels[i] = 127;
-            // }  
+            core.GL.setDefaultPostProgram();
             
             this.vertBuffer = this.vertBuffer || gl.createBuffer();
             gl.bindBuffer(gl.ARRAY_BUFFER, this.vertBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.verts), gl.STATIC_DRAW);
+            gl.bufferData(gl.ARRAY_BUFFER, this.verts, gl.STATIC_DRAW);
             gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
             gl.enableVertexAttribArray(0);
 
-            core.GL.setDefaultPostProgram();
             
             // Create an empty texture
             this.postTex = this.postTex || gl.createTexture();
@@ -3904,6 +3904,9 @@ if (typeof glMatrixArrayType === 'undefined') {
             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
             
             gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+            gl.bindTexture(gl.TEXTURE_2D, null);
+            gl.disableVertexAttribArray(0);
             core.GL.setDefaultProgram();
         }
     });
